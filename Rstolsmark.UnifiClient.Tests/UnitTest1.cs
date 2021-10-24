@@ -25,7 +25,16 @@ namespace Rstolsmark.UnifiClient.Tests
             {
                 Clock = _testClock
             });
-            _unifiClient = new UnifiClient(cache);
+            var options = new UnifiClientOptions
+            {
+                BaseUrl = "https://example.com",
+                Credentials = new Credentials
+                {
+                    Username = "foo",
+                    Password = "bar"
+                }
+            };
+            _unifiClient = new UnifiClient(cache, options);
         }
         [Fact]
         public async Task Login_Should_Return_False_On_Failure()

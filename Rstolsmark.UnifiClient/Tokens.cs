@@ -1,8 +1,8 @@
-internal class UnifiCredentials
+internal class Tokens
 {
     string JwtToken { get; }
 
-    public UnifiCredentials(string jwtToken, string csrfToken)
+    public Tokens(string jwtToken, string csrfToken)
     {
         JwtToken = jwtToken;
         CsrfToken = csrfToken;
