@@ -1,6 +1,6 @@
-internal class Tokens
+public class Tokens
 {
-    string JwtToken { get; }
+    public string JwtToken { get; }
 
     public Tokens(string jwtToken, string csrfToken)
     {
@@ -8,5 +8,5 @@ internal class Tokens
         CsrfToken = csrfToken;
     }
 
-    string CsrfToken { get; }
+    public string CsrfToken { get; }
 }

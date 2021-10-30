@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Threading.Tasks;
 using Flurl.Http;
 using System.Linq;
+using Flurl.Http.Configuration;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Rstolsmark.UnifiClient
 {
@@ -12,27 +16,44 @@ namespace Rstolsmark.UnifiClient
         private IMemoryCache _cache;
         private Credentials _credentials;
         private string _baseUrl;
-
+        private const string CredentialsCacheKey = "unifiCredentials";
+        private const string TokenCookieName = "TOKEN";
         public UnifiClient(IMemoryCache cache, UnifiClientOptions options)
         {
             _cache = cache;
             _credentials = options.Credentials;
             _baseUrl = options.BaseUrl;
-            if (options.AllowInvalidCertificate)
-            {
                 FlurlHttp.ConfigureClient(_baseUrl, cli =>
                 {
-                    cli.Settings.HttpClientFactory = new UntrustedCertClientFactory();
+                    if (options.AllowInvalidCertificate)
+                    {
+                        cli.Settings.HttpClientFactory = new UntrustedCertClientFactory();
+                    }
+
+                    var jsonSettings = new JsonSerializerSettings()
+                    {
+                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                    };
+                    cli.Settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
                 });
-            }
         }
-        public async Task<bool> Login()
+        public async Task<Tokens> GetTokens()
+        {
+            if(_cache.TryGetValue(CredentialsCacheKey, out Tokens tokens))
+            {
+                return tokens;
+            }
+
+            return await Login();
+        }
+
+        public async Task<Tokens> Login()
         {
             try
             {
-                var test = await _baseUrl
-                    .GetAsync();
-                var tokenCookie = test.Cookies[0];
+                var loginResponse = await $"{_baseUrl}/api/auth/login"
+                    .PostJsonAsync(_credentials);
+                var tokenCookie = loginResponse.Cookies[0];
                 var jwtTokenEncoded = tokenCookie.Value;
                 var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(jwtTokenEncoded);
                 var csrfToken = jwtToken.Claims.First(x => x.Type == "csrfToken").Value;
@@ -40,14 +61,31 @@ namespace Rstolsmark.UnifiClient
                 //subtract 10 minutes to allow for clock skew
                 var cacheEntryOptions = new MemoryCacheEntryOptions()
                     .SetAbsoluteExpiration(jwtToken.ValidTo.AddMinutes(-10));
-                _cache.Set("credentials", credentials, cacheEntryOptions);
+                _cache.Set(CredentialsCacheKey, credentials, cacheEntryOptions);
                 //jwtToken.ValidTo
-                return true;
+                return credentials;
             }
-            catch (FlurlHttpException)
+            catch (FlurlHttpException flurlException)
             {
-                return false;
+                throw new LoginException(flurlException);
             }
+        }
+
+        public async Task<List<PortForward>> GetPortForwardSettings()
+        {
+            var tokens = await GetTokens();
+            var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
+                .WithCookie(TokenCookieName, tokens.JwtToken)
+                .GetJsonAsync<GetPortForwardListResponse>();
+            return portForwardResponse.Data;
+        }
+    }
+
+    public class LoginException : Exception
+    {
+        public LoginException(Exception innerException) : base("Login failed. See inner exception for details",innerException)
+        {
+            
         }
     }
 }
