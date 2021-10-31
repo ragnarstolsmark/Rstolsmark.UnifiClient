@@ -1,0 +1,1 @@
+{"meta":{"rc":"ok"},"data":[{"name":"Some external port","enabled":true,"pfwd_interface":"wan","src":"242.151.234.222","dst_port":"3391","fwd":"192.168.5.93","fwd_port":"3389","proto":"tcp","log":false,"site_id":"604767e98e188e04cd5e038c","_id":"6156a2368e188e7795ff6399"}]}

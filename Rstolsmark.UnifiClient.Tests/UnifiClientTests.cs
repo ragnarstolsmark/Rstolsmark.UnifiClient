@@ -15,6 +15,7 @@ namespace Rstolsmark.UnifiClient.Tests
         private readonly string _jwtToken;
         private readonly UnifiClientOptions _options;
         private const string ResponseFolder = "responses";
+        private const string RequestFolder = "requests";
         public UnifiClientTests()
         {
             var loginDate = new DateTimeOffset(2021, 10, 11, 14, 33, 0, 0, TimeSpan.Zero);
@@ -39,7 +40,7 @@ namespace Rstolsmark.UnifiClient.Tests
             _unifiClient = new UnifiClient(cache, _options);
             //The jwt token is valid to 11.10.2021 15:33:28 UTC
             //It also contains a clam named csrfToken that is valid in the same time span
-            _jwtToken = File.ReadAllText(Path.Combine(ResponseFolder,"jwtToken.txt"));
+            _jwtToken = File.ReadAllText(Path.Combine(ResponseFolder,"JwtToken.txt"));
         }
         [Fact]
         public async Task Login_Should_Throw_Exception_On_Failure()
@@ -58,9 +59,10 @@ namespace Rstolsmark.UnifiClient.Tests
             //Forward the test clock to two minutes after the token expires to see that login is called again
             _testClock.UtcNow = new DateTimeOffset(2021, 10, 11, 15, 35, 0, 0, TimeSpan.Zero);
             await _unifiClient.GetTokens();
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "Login.json"));
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/api/auth/login")
                 .WithContentType("application/json")
-                .WithRequestBody($@"{{""username"":""{_options.Credentials.Username}"",""password"":""{_options.Credentials.Password}""}}")
+                .WithRequestBody(expectedRequest)
                 .Times(2);
         }
 
@@ -106,6 +108,38 @@ namespace Rstolsmark.UnifiClient.Tests
             httpTest
                 .RespondWith(deletePortForwardResponse);
             await _unifiClient.DeletePortForwardSetting("60478d7f8e188e04d2ff3e8e");
+        }
+        [Fact]
+        public async Task Create_PortForward_Should_Return_PortForward()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var createPortForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "CreatePortForward.json")); 
+            httpTest
+                .RespondWith(createPortForwardResponse);
+            var portForward = new PortForward()
+            {
+                Name = "Some external port",
+                Enabled = true,
+                PortForwardInterface = "wan",
+                Source = "242.151.234.222",
+                DestinationPort = "3391",
+                Forward = "192.168.5.93",
+                ForwardPort = "3389",
+                Protocol = "tcp",
+                Log = false
+            };
+            var portForwardSetting = await _unifiClient.CreatePortForwardSetting(portForward);
+            var tokens = await _unifiClient.GetTokens();
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForward.json"));
+            httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward")
+                .WithContentType("application/json")
+                .WithHeader("X-CSRF-Token",tokens.CsrfToken)
+                .WithCookie("TOKEN", tokens.JwtToken)
+                .WithRequestBody(expectedRequest);
+            Assert.Equal("6156a2368e188e7795ff6399", portForwardSetting.Id);
+            
         }
     }
 }

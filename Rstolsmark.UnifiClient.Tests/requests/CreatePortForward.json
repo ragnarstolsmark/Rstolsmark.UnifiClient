@@ -1,0 +1,1 @@
+{"name":"Some external port","enabled":true,"pfwd_interface":"wan","src":"242.151.234.222","dst_port":"3391","fwd":"192.168.5.93","fwd_port":"3389","proto":"tcp","log":false}

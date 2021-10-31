@@ -19,7 +19,7 @@ namespace Rstolsmark.UnifiClient
         private string _baseUrl;
         private const string CredentialsCacheKey = "unifiCredentials";
         private const string TokenCookieName = "TOKEN";
-        private const string CsrfTokenCookieName = "X-CSRF-Token";
+        private const string CsrfTokenHeaderName = "X-CSRF-Token";
         public UnifiClient(IMemoryCache cache, UnifiClientOptions options)
         {
             _cache = cache;
@@ -34,7 +34,8 @@ namespace Rstolsmark.UnifiClient
 
                     var jsonSettings = new JsonSerializerSettings()
                     {
-                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                        ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                        NullValueHandling = NullValueHandling.Ignore
                     };
                     cli.Settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
                 });
@@ -78,7 +79,7 @@ namespace Rstolsmark.UnifiClient
             var tokens = await GetTokens();
             var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
                 .WithCookie(TokenCookieName, tokens.JwtToken)
-                .GetJsonAsync<GetPortForwardListResponse>();
+                .GetJsonAsync<PortForwardResponse>();
             return portForwardResponse.Data;
         }
 
@@ -107,7 +108,7 @@ namespace Rstolsmark.UnifiClient
             {
                 var _ = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
                     .WithCookie(TokenCookieName, tokens.JwtToken)
-                    .WithCookie(CsrfTokenCookieName, tokens.CsrfToken)
+                    .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                     .DeleteAsync();
             }
             catch (FlurlHttpException fex)
@@ -118,7 +119,18 @@ namespace Rstolsmark.UnifiClient
                 }
                 throw;
             }
-        } 
+        }
+
+        public async Task<PortForward> CreatePortForwardSetting(PortForward portForward)
+        {
+            var tokens = await GetTokens();
+            var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
+                .WithCookie(TokenCookieName, tokens.JwtToken)
+                .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
+                .PostJsonAsync(portForward);
+            var portForwardResponse = await response.GetJsonAsync<PortForwardResponse>(); 
+            return portForwardResponse.Data.Single();
+        }
     }
 
     public class IdInvalidException : Exception
