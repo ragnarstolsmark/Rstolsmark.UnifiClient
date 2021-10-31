@@ -1,0 +1,1 @@
+{"meta":{"rc":"ok"},"data":[{"_id":"60478d7f8e188e04d2ff3e8e","name":"Some RDP","enabled":true,"pfwd_interface":"wan","src":"57.173.50.35","dst_port":"3395","fwd":"192.168.5.200","fwd_port":"3389","proto":"tcp","log":false,"site_id":"604767e98e188e04cd5e038c"}]}

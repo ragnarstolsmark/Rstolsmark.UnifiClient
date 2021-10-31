@@ -5,7 +5,13 @@
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
+  
+  <ItemGroup>
+    <None Include="responses\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Flurl.Http" Version="3.2.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
