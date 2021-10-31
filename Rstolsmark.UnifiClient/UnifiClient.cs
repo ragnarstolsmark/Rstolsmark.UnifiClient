@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Flurl.Http;
 using System.Linq;
 using Flurl.Http.Configuration;
+using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -18,6 +19,7 @@ namespace Rstolsmark.UnifiClient
         private string _baseUrl;
         private const string CredentialsCacheKey = "unifiCredentials";
         private const string TokenCookieName = "TOKEN";
+        private const string CsrfTokenCookieName = "X-CSRF-Token";
         public UnifiClient(IMemoryCache cache, UnifiClientOptions options)
         {
             _cache = cache;
@@ -78,6 +80,51 @@ namespace Rstolsmark.UnifiClient
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .GetJsonAsync<GetPortForwardListResponse>();
             return portForwardResponse.Data;
+        }
+
+        public async Task DeletePortForwardSetting(string id)
+        {
+            async Task<bool> IsIdInvalidResponse(FlurlHttpException fex)
+            {
+                if (fex.StatusCode != 400)
+                {
+                    return false;
+                }
+
+                var response = await fex.GetResponseJsonAsync();
+                try
+                {
+                    bool isIdInvalid = response.meta.msg.Equals("api.err.IdInvalid");
+                    return isIdInvalid;
+                }
+                catch (RuntimeBinderException)
+                {
+                    return false;
+                }
+            }
+            var tokens = await GetTokens();
+            try
+            {
+                var _ = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                    .WithCookie(TokenCookieName, tokens.JwtToken)
+                    .WithCookie(CsrfTokenCookieName, tokens.CsrfToken)
+                    .DeleteAsync();
+            }
+            catch (FlurlHttpException fex)
+            {
+                if (await IsIdInvalidResponse(fex))
+                {
+                    throw new IdInvalidException(id, fex);
+                }
+                throw;
+            }
+        } 
+    }
+
+    public class IdInvalidException : Exception
+    {
+        public IdInvalidException(string id, Exception innerException) : base($"Deletion failed, id: {id} is invalid.")
+        {
         }
     }
 

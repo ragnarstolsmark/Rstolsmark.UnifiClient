@@ -84,5 +84,28 @@ namespace Rstolsmark.UnifiClient.Tests
             Assert.Single(portForwardSettings);
             Assert.Equal("57.173.50.35",portForwardSettings[0].Source);
         }
+
+        [Fact]
+        public async Task Delete_Port_Forward_With_Invalid_Id_Should_Throw_IdInvalid_Exception()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var deletePortForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardInvalidId.json")); 
+            httpTest
+                .RespondWith(body: deletePortForwardResponse, status: 400);
+            await Assert.ThrowsAsync<IdInvalidException>(()=> _unifiClient.DeletePortForwardSetting("60478d7f8e188e04d2ff3e8a"));
+        }
+        [Fact]
+        public async Task Delete_Port_Forward_With_Valid_Id_Should_Succeed()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var deletePortForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardSuccess.json")); 
+            httpTest
+                .RespondWith(deletePortForwardResponse);
+            await _unifiClient.DeletePortForwardSetting("60478d7f8e188e04d2ff3e8e");
+        }
     }
 }
