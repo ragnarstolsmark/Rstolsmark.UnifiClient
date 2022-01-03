@@ -47,7 +47,8 @@ namespace Rstolsmark.UnifiClient
                 return tokens;
             }
 
-            return await Login();
+            return await Login()
+                .ConfigureAwait(false);
         }
 
         public async Task<Tokens> Login()
@@ -55,7 +56,8 @@ namespace Rstolsmark.UnifiClient
             try
             {
                 var loginResponse = await $"{_baseUrl}/api/auth/login"
-                    .PostJsonAsync(_credentials);
+                    .PostJsonAsync(_credentials)
+                    .ConfigureAwait(false);
                 var tokenCookie = loginResponse.Cookies[0];
                 var jwtTokenEncoded = tokenCookie.Value;
                 var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(jwtTokenEncoded);
@@ -76,10 +78,12 @@ namespace Rstolsmark.UnifiClient
 
         public async Task<List<PortForward>> GetPortForwardSettings()
         {
-            var tokens = await GetTokens();
+            var tokens = await GetTokens()
+                .ConfigureAwait(false);
             var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
                 .WithCookie(TokenCookieName, tokens.JwtToken)
-                .GetJsonAsync<PortForwardResponse>();
+                .GetJsonAsync<PortForwardResponse>()
+                .ConfigureAwait(false);
             return portForwardResponse.Data;
         }
 
@@ -92,7 +96,8 @@ namespace Rstolsmark.UnifiClient
                     return false;
                 }
 
-                var response = await fex.GetResponseJsonAsync();
+                var response = await fex.GetResponseJsonAsync()
+                    .ConfigureAwait(false);
                 try
                 {
                     bool isIdInvalid = response.meta.msg.Equals("api.err.IdInvalid");
@@ -103,13 +108,15 @@ namespace Rstolsmark.UnifiClient
                     return false;
                 }
             }
-            var tokens = await GetTokens();
+            var tokens = await GetTokens()
+                .ConfigureAwait(false);
             try
             {
                 var _ = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
-                    .DeleteAsync();
+                    .DeleteAsync()
+                    .ConfigureAwait(false);
             }
             catch (FlurlHttpException fex)
             {
@@ -123,12 +130,15 @@ namespace Rstolsmark.UnifiClient
 
         public async Task<PortForward> CreatePortForwardSetting(PortForward portForward)
         {
-            var tokens = await GetTokens();
+            var tokens = await GetTokens()
+                .ConfigureAwait(false);
             var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
-                .PostJsonAsync(portForward);
-            var portForwardResponse = await response.GetJsonAsync<PortForwardResponse>(); 
+                .PostJsonAsync(portForward)
+                .ConfigureAwait(false);
+            var portForwardResponse = await response.GetJsonAsync<PortForwardResponse>()
+                .ConfigureAwait(false); 
             return portForwardResponse.Data.Single();
         }
     }
