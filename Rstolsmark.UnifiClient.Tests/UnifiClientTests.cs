@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Xunit;
 using Flurl.Http.Testing;
 using Microsoft.Extensions.Caching.Memory;
-using NuGet.Frameworks;
 
 namespace Rstolsmark.UnifiClient.Tests
 {
