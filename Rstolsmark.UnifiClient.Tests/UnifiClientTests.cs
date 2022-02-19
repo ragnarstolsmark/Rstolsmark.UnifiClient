@@ -35,7 +35,8 @@ namespace Rstolsmark.UnifiClient.Tests
                 {
                     Username = "foo",
                     Password = "bar"
-                }
+                },
+                DefaultInterface = "wan"
             };
             _unifiClient = new UnifiClient(cache, _options);
             //The jwt token is valid to 11.10.2021 15:33:28 UTC
@@ -122,7 +123,6 @@ namespace Rstolsmark.UnifiClient.Tests
             {
                 Name = "Some external port",
                 Enabled = true,
-                PortForwardInterface = "wan",
                 Source = "242.151.234.222",
                 DestinationPort = "3391",
                 Forward = "192.168.5.93",

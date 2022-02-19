@@ -17,6 +17,7 @@ namespace Rstolsmark.UnifiClient
         private IMemoryCache _cache;
         private Credentials _credentials;
         private string _baseUrl;
+        private string _defaultInterface;
         private const string CredentialsCacheKey = "unifiCredentials";
         private const string TokenCookieName = "TOKEN";
         private const string CsrfTokenHeaderName = "X-CSRF-Token";
@@ -25,6 +26,7 @@ namespace Rstolsmark.UnifiClient
             _cache = cache;
             _credentials = options.Credentials;
             _baseUrl = options.BaseUrl;
+            _defaultInterface = options.DefaultInterface;
                 FlurlHttp.ConfigureClient(_baseUrl, cli =>
                 {
                     if (options.AllowInvalidCertificate)
@@ -130,6 +132,10 @@ namespace Rstolsmark.UnifiClient
 
         public async Task<PortForward> CreatePortForwardSetting(PortForward portForward)
         {
+            if (portForward.PortForwardInterface == null)
+            {
+                portForward.PortForwardInterface = _defaultInterface;
+            }
             var tokens = await GetTokens()
                 .ConfigureAwait(false);
             var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
