@@ -119,7 +119,7 @@ namespace Rstolsmark.UnifiClient.Tests
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "CreatePortForward.json")); 
             httpTest
                 .RespondWith(createPortForwardResponse);
-            var portForward = new PortForward()
+            var portForward = new PortForwardForm
             {
                 Name = "Some external port",
                 Enabled = true,

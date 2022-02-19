@@ -130,7 +130,7 @@ namespace Rstolsmark.UnifiClient
             }
         }
 
-        public async Task<PortForward> CreatePortForwardSetting(PortForward portForward)
+        public async Task<PortForward> CreatePortForwardSetting(PortForwardForm portForward)
         {
             if (portForward.PortForwardInterface == null)
             {
