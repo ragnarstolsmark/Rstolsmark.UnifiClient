@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Rstolsmark.UnifiClient
 {
-    public class PortForwardResponse
+    public class PortForwardListResponse
     {
         public List<PortForward> Data { get; set; }
     }

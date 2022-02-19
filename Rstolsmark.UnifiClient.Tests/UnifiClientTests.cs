@@ -138,6 +138,22 @@ namespace Rstolsmark.UnifiClient.Tests
                 .WithCookie("TOKEN", tokens.JwtToken)
                 .WithRequestBody(expectedRequest);
             Assert.Equal("6156a2368e188e7795ff6399", portForwardSetting.Id);
+        }
+        [Fact]
+        public async Task Get_PortForwardById_Should_Return_PortForward()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var GetByIdResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetById.json")); 
+            httpTest
+                .RespondWith(GetByIdResponse);
+            var id = "6156a2368e188e7795ff6399";
+            var portForwardSetting = await _unifiClient.GetPortForwardById(id);
+            var tokens = await _unifiClient.GetTokens();
+            httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward/{id}")
+                .WithCookie("TOKEN", tokens.JwtToken);
+            Assert.Equal(id, portForwardSetting.Id);
             
         }
     }

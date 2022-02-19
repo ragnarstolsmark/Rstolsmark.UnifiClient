@@ -77,6 +77,28 @@ namespace Rstolsmark.UnifiClient
                 throw new LoginException(flurlException);
             }
         }
+        
+        public async Task<PortForward> GetPortForwardById(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new IdInvalidException();
+            }
+            var tokens = await GetTokens()
+                .ConfigureAwait(false);
+            try
+            {
+                var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                    .WithCookie(TokenCookieName, tokens.JwtToken)
+                    .GetJsonAsync<PortForwardListResponse>()
+                    .ConfigureAwait(false);
+                return portForwardResponse.Data.SingleOrDefault();
+            }
+            catch (FlurlHttpException fex) when (fex.StatusCode == 404)
+            {
+                throw new IdInvalidException(id, fex);
+            }
+        }
 
         public async Task<List<PortForward>> GetPortForwardSettings()
         {
@@ -84,7 +106,7 @@ namespace Rstolsmark.UnifiClient
                 .ConfigureAwait(false);
             var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
                 .WithCookie(TokenCookieName, tokens.JwtToken)
-                .GetJsonAsync<PortForwardResponse>()
+                .GetJsonAsync<PortForwardListResponse>()
                 .ConfigureAwait(false);
             return portForwardResponse.Data;
         }
@@ -109,6 +131,11 @@ namespace Rstolsmark.UnifiClient
                 {
                     return false;
                 }
+            }
+
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new IdInvalidException();
             }
             var tokens = await GetTokens()
                 .ConfigureAwait(false);
@@ -143,7 +170,7 @@ namespace Rstolsmark.UnifiClient
                 .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                 .PostJsonAsync(portForward)
                 .ConfigureAwait(false);
-            var portForwardResponse = await response.GetJsonAsync<PortForwardResponse>()
+            var portForwardResponse = await response.GetJsonAsync<PortForwardListResponse>()
                 .ConfigureAwait(false); 
             return portForwardResponse.Data.Single();
         }
@@ -151,7 +178,11 @@ namespace Rstolsmark.UnifiClient
 
     public class IdInvalidException : Exception
     {
-        public IdInvalidException(string id, Exception innerException) : base($"Deletion failed, id: {id} is invalid.")
+        public IdInvalidException() : base("Id is missing")
+        {
+            
+        }
+        public IdInvalidException(string id, Exception innerException) : base($"Request failed, id: {id} is invalid.", innerException)
         {
         }
     }
