@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Xunit;
 using Flurl.Http.Testing;
@@ -155,6 +156,30 @@ namespace Rstolsmark.UnifiClient.Tests
                 .WithCookie("TOKEN", tokens.JwtToken);
             Assert.Equal(id, portForwardSetting.Id);
             
+        }
+        [Fact]
+        public async Task Enable_PortForward_Should_Succeed()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var createPortForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "EnablePortForward.json")); 
+            httpTest
+                .RespondWith(createPortForwardResponse);
+            var portForward = new PortForwardForm
+            {
+                Enabled = true
+            };
+            var id = "6156a2368e188e7795ff6399";
+            await _unifiClient.EditPortForwardSetting(id, portForward);
+            var tokens = await _unifiClient.GetTokens();
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "EnablePortForward.json"));
+            httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward/{id}")
+                .WithVerb(HttpMethod.Put)
+                .WithContentType("application/json")
+                .WithHeader("X-CSRF-Token",tokens.CsrfToken)
+                .WithCookie("TOKEN", tokens.JwtToken)
+                .WithRequestBody(expectedRequest);
         }
     }
 }

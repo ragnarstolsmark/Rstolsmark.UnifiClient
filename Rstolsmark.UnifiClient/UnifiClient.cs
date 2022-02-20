@@ -113,26 +113,6 @@ namespace Rstolsmark.UnifiClient
 
         public async Task DeletePortForwardSetting(string id)
         {
-            async Task<bool> IsIdInvalidResponse(FlurlHttpException fex)
-            {
-                if (fex.StatusCode != 400)
-                {
-                    return false;
-                }
-
-                var response = await fex.GetResponseJsonAsync()
-                    .ConfigureAwait(false);
-                try
-                {
-                    bool isIdInvalid = response.meta.msg.Equals("api.err.IdInvalid");
-                    return isIdInvalid;
-                }
-                catch (RuntimeBinderException)
-                {
-                    return false;
-                }
-            }
-
             if (string.IsNullOrEmpty(id))
             {
                 throw new IdInvalidException();
@@ -157,6 +137,26 @@ namespace Rstolsmark.UnifiClient
             }
         }
 
+        private async Task<bool> IsIdInvalidResponse(FlurlHttpException fex)
+        {
+            if (fex.StatusCode != 400)
+            {
+                return false;
+            }
+
+            var response = await fex.GetResponseJsonAsync()
+                .ConfigureAwait(false);
+            try
+            {
+                bool isIdInvalid = response.meta.msg.Equals("api.err.IdInvalid");
+                return isIdInvalid;
+            }
+            catch (RuntimeBinderException)
+            {
+                return false;
+            }
+        }
+
         public async Task<PortForward> CreatePortForwardSetting(PortForwardForm portForward)
         {
             if (portForward.PortForwardInterface == null)
@@ -173,6 +173,31 @@ namespace Rstolsmark.UnifiClient
             var portForwardResponse = await response.GetJsonAsync<PortForwardListResponse>()
                 .ConfigureAwait(false); 
             return portForwardResponse.Data.Single();
+        }
+
+        public async Task EditPortForwardSetting(string id, PortForwardForm portForward)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new IdInvalidException();
+            }
+            var tokens = await GetTokens()
+                .ConfigureAwait(false);
+            try
+            {
+                var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                    .WithCookie(TokenCookieName, tokens.JwtToken)
+                    .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
+                    .PutJsonAsync(portForward)
+                    .ConfigureAwait(false);
+            }catch (FlurlHttpException fex)
+            {
+                if (await IsIdInvalidResponse(fex))
+                {
+                    throw new IdInvalidException(id, fex);
+                }
+                throw;
+            }
         }
     }
 
