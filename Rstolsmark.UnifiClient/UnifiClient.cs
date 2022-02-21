@@ -40,6 +40,10 @@ namespace Rstolsmark.UnifiClient
                         NullValueHandling = NullValueHandling.Ignore
                     };
                     cli.Settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
+                    if (options.TimeoutSeconds != null)
+                    {
+                        cli.Settings.Timeout = TimeSpan.FromSeconds((double) options.TimeoutSeconds);
+                    }
                 });
         }
         public async Task<Tokens> GetTokens()

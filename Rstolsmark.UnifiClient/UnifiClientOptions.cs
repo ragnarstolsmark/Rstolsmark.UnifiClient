@@ -6,5 +6,6 @@ namespace Rstolsmark.UnifiClient
         public Credentials Credentials { get; set; }
         public bool AllowInvalidCertificate { get; set; }
         public string DefaultInterface { get; set; }
+        public int? TimeoutSeconds { get; set; }
     }
 }
