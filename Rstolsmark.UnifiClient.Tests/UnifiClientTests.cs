@@ -50,6 +50,14 @@ namespace Rstolsmark.UnifiClient.Tests
             httpTest.RespondWith(status: 400);
             await Assert.ThrowsAsync<LoginException>( _unifiClient.Login);
         }
+        
+        [Fact]
+        public async Task Login_Should_Throw_ClientTimeOutException_On_Timeout()
+        {
+            using var httpTest = new HttpTest();
+            httpTest.SimulateTimeout();
+            await Assert.ThrowsAsync<ClientTimoutException>( _unifiClient.Login);
+        }
         [Fact]
         public async Task Get_Tokens_Should_Cache_Tokens()
         {

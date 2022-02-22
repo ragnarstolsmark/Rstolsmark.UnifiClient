@@ -63,6 +63,7 @@ namespace Rstolsmark.UnifiClient
             {
                 var loginResponse = await $"{_baseUrl}/api/auth/login"
                     .PostJsonAsync(_credentials)
+                    .WithTimeoutHandling()
                     .ConfigureAwait(false);
                 var tokenCookie = loginResponse.Cookies[0];
                 var jwtTokenEncoded = tokenCookie.Value;
@@ -95,6 +96,7 @@ namespace Rstolsmark.UnifiClient
                 var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .GetJsonAsync<PortForwardListResponse>()
+                    .WithTimeoutHandling()
                     .ConfigureAwait(false);
                 return portForwardResponse.Data.SingleOrDefault();
             }
@@ -111,6 +113,7 @@ namespace Rstolsmark.UnifiClient
             var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .GetJsonAsync<PortForwardListResponse>()
+                .WithTimeoutHandling()
                 .ConfigureAwait(false);
             return portForwardResponse.Data;
         }
@@ -129,6 +132,7 @@ namespace Rstolsmark.UnifiClient
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                     .DeleteAsync()
+                    .WithTimeoutHandling()
                     .ConfigureAwait(false);
             }
             catch (FlurlHttpException fex)
@@ -173,6 +177,7 @@ namespace Rstolsmark.UnifiClient
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                 .PostJsonAsync(portForward)
+                .WithTimeoutHandling()
                 .ConfigureAwait(false);
             var portForwardResponse = await response.GetJsonAsync<PortForwardListResponse>()
                 .ConfigureAwait(false); 
@@ -193,6 +198,7 @@ namespace Rstolsmark.UnifiClient
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                     .PutJsonAsync(portForward)
+                    .WithTimeoutHandling()
                     .ConfigureAwait(false);
             }catch (FlurlHttpException fex)
             {
@@ -221,6 +227,29 @@ namespace Rstolsmark.UnifiClient
         public LoginException(Exception innerException) : base("Login failed. See inner exception for details",innerException)
         {
             
+        }
+    }
+    public class ClientTimoutException : Exception
+    {
+        public ClientTimoutException(Exception innerException) : base("Client timed out. See inner exception for details",innerException)
+        {
+            
+        }
+    }
+
+    public static class FlurlExtensionMethods
+    {
+        public static async Task<T> WithTimeoutHandling<T>(this Task<T> response)
+        {
+            try
+            {
+                return await response
+                    .ConfigureAwait(false);
+            }
+            catch (FlurlHttpTimeoutException fex)
+            {
+                throw new ClientTimoutException(fex);
+            }
         }
     }
 }
