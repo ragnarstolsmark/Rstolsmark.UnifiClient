@@ -235,10 +235,12 @@ namespace Rstolsmark.UnifiClient.Tests
             };
             var portForwardSetting = await _unifiClient.CreatePortForwardSetting(portForward);
             var tokens = await _unifiClient.GetTokens();
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForwardWithWanIp.json"));
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward")
                 .WithContentType("application/json")
                 .WithHeader("X-CSRF-Token",tokens.CsrfToken)
-                .WithCookie("TOKEN", tokens.JwtToken);
+                .WithCookie("TOKEN", tokens.JwtToken)
+                .WithRequestBody(expectedRequest);
             Assert.Equal("68aeaf5b4abd6665bac3a6f3", portForwardSetting.Id);
             Assert.Equal("198.51.100.50", portForwardSetting.DestinationIp);
         }
