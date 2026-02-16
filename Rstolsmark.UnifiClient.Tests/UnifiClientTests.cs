@@ -189,5 +189,58 @@ namespace Rstolsmark.UnifiClient.Tests
                 .WithCookie("TOKEN", tokens.JwtToken)
                 .WithRequestBody(expectedRequest);
         }
+        
+        [Fact]
+        public async Task Get_Port_Forward_With_Wan_Ip_Should_Parse_All_Fields()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var portForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
+            httpTest
+                .RespondWith(portForwardResponse);
+            var portForwardSettings = await _unifiClient.GetPortForwardSettings();
+            Assert.Single(portForwardSettings);
+            Assert.Equal("203.0.113.10", portForwardSettings[0].Source);
+            Assert.Equal("198.51.100.50", portForwardSettings[0].DestinationIp);
+            Assert.NotNull(portForwardSettings[0].DestinationIps);
+            Assert.Empty(portForwardSettings[0].DestinationIps);
+            Assert.Equal("ip", portForwardSettings[0].SourceLimitingType);
+            Assert.True(portForwardSettings[0].SourceLimitingEnabled);
+        }
+        
+        [Fact]
+        public async Task Create_PortForward_With_Wan_Ip_Should_Include_All_Fields()
+        {
+            using var httpTest = new HttpTest();
+            AddLoginSuccessCall(httpTest);
+            var createPortForwardResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
+            httpTest
+                .RespondWith(createPortForwardResponse);
+            var portForward = new PortForwardForm
+            {
+                Name = "Test User",
+                Enabled = true,
+                Source = "203.0.113.10",
+                DestinationPort = "3391",
+                Forward = "192.168.1.100",
+                ForwardPort = "3389",
+                Protocol = "tcp",
+                Log = false,
+                DestinationIp = "198.51.100.50",
+                DestinationIps = new string[] { },
+                SourceLimitingType = "ip",
+                SourceLimitingEnabled = true
+            };
+            var portForwardSetting = await _unifiClient.CreatePortForwardSetting(portForward);
+            var tokens = await _unifiClient.GetTokens();
+            httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward")
+                .WithContentType("application/json")
+                .WithHeader("X-CSRF-Token",tokens.CsrfToken)
+                .WithCookie("TOKEN", tokens.JwtToken);
+            Assert.Equal("68aeaf5b4abd6665bac3a6f3", portForwardSetting.Id);
+            Assert.Equal("198.51.100.50", portForwardSetting.DestinationIp);
+        }
     }
 }

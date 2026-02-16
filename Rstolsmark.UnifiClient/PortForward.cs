@@ -24,5 +24,13 @@ namespace Rstolsmark.UnifiClient
         public bool Log { get; set; }
         [JsonProperty("site_id")]
         public string SiteId { get; set; }
+        [JsonProperty("destination_ip")]
+        public string DestinationIp { get; set; }
+        [JsonProperty("destination_ips")]
+        public string[] DestinationIps { get; set; }
+        [JsonProperty("src_limiting_type")]
+        public string SourceLimitingType { get; set; }
+        [JsonProperty("src_limiting_enabled")]
+        public bool SourceLimitingEnabled { get; set; }
     }
 }

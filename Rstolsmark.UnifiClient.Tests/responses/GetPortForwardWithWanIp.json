@@ -1,0 +1,1 @@
+{"meta":{"rc":"ok"},"data":[{"pfwd_interface":"wan","src":"203.0.113.10","log":false,"destination_ips":[],"enabled":true,"fwd":"192.168.1.100","destination_ip":"198.51.100.50","proto":"tcp","name":"Test User","dst_port":"3391","site_id":"604767a98e188e04cd5e038b","src_limiting_type":"ip","src_limiting_enabled":true,"_id":"68aeaf5b4abd6665bac3a6f3","fwd_port":"3389"}]}
