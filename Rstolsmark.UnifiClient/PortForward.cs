@@ -31,6 +31,6 @@ namespace Rstolsmark.UnifiClient
         [JsonProperty("src_limiting_type")]
         public string SourceLimitingType { get; set; }
         [JsonProperty("src_limiting_enabled")]
-        public bool SourceLimitingEnabled { get; set; }
+        public bool? SourceLimitingEnabled { get; set; }
     }
 }
