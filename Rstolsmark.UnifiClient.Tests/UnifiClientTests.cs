@@ -1,8 +1,11 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
+using Flurl.Http;
+using Flurl.Http.Configuration;
 using Flurl.Http.Testing;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -16,8 +19,23 @@ namespace Rstolsmark.UnifiClient.Tests
         private readonly UnifiClientOptions _options;
         private const string ResponseFolder = "responses";
         private const string RequestFolder = "requests";
+        
+        private static void ConfigureHttpTest(HttpTest httpTest)
+        {
+            // Configure HttpTest to use the same serializer settings as the client
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
+            httpTest.Settings.JsonSerializer = new DefaultJsonSerializer(jsonOptions);
+        }
+        
         public UnifiClientTests()
         {
+            // Clear the Flurl client cache to ensure HttpTest can intercept calls
+            FlurlHttp.Clients.Clear();
+            
             var loginDate = new DateTimeOffset(2021, 10, 11, 14, 33, 0, 0, TimeSpan.Zero);
             _testClock = new TestClock()
             {
@@ -47,6 +65,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Login_Should_Throw_Exception_On_Failure()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             httpTest.RespondWith(status: 400);
             await Assert.ThrowsAsync<LoginException>( _unifiClient.Login);
         }
@@ -55,6 +74,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Login_Should_Throw_ClientTimeOutException_On_Timeout()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             httpTest.SimulateTimeout();
             await Assert.ThrowsAsync<ClientTimoutException>( _unifiClient.Login);
         }
@@ -62,6 +82,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Get_Tokens_Should_Cache_Tokens()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             await _unifiClient.GetTokens();
             await _unifiClient.GetTokens();
@@ -86,6 +107,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Get_Port_Forward_Settings_Should_Return_List()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var portForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetCurrentPortForward.json")); 
@@ -100,6 +122,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Delete_Port_Forward_With_Invalid_Id_Should_Throw_IdInvalid_Exception()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var deletePortForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardInvalidId.json")); 
@@ -111,6 +134,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Delete_Port_Forward_With_Valid_Id_Should_Succeed()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var deletePortForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardSuccess.json")); 
@@ -122,6 +146,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Create_PortForward_Should_Return_PortForward()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "CreatePortForward.json")); 
@@ -152,6 +177,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Get_PortForwardById_Should_Return_PortForward()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var GetByIdResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetById.json")); 
@@ -169,6 +195,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Enable_PortForward_Should_Succeed()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "EnablePortForward.json")); 
@@ -194,6 +221,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Get_Port_Forward_With_Wan_Ip_Should_Parse_All_Fields()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var portForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
@@ -213,6 +241,7 @@ namespace Rstolsmark.UnifiClient.Tests
         public async Task Create_PortForward_With_Wan_Ip_Should_Include_All_Fields()
         {
             using var httpTest = new HttpTest();
+            ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
                 await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
