@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Flurl.Http;
-using System.Linq;
 using Flurl.Http.Configuration;
-using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Rstolsmark.UnifiClient
 {
@@ -27,24 +26,34 @@ namespace Rstolsmark.UnifiClient
             _credentials = options.Credentials;
             _baseUrl = options.BaseUrl;
             _defaultInterface = options.DefaultInterface;
-                FlurlHttp.ConfigureClient(_baseUrl, cli =>
+            
+            FlurlHttp.Clients.GetOrAdd(_baseUrl, _baseUrl, builder =>
+            {
+                if (options.AllowInvalidCertificate)
                 {
-                    if (options.AllowInvalidCertificate)
+                    builder.ConfigureInnerHandler(h =>
                     {
-                        cli.Settings.HttpClientFactory = new UntrustedCertClientFactory();
-                    }
+                        if (h is HttpClientHandler handler)
+                        {
+                            handler.ServerCertificateCustomValidationCallback = (a, b, c, d) => true;
+                        }
+                    });
+                }
 
-                    var jsonSettings = new JsonSerializerSettings()
+                builder.WithSettings(s =>
+                {
+                    var jsonOptions = new JsonSerializerOptions
                     {
-                        ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                        NullValueHandling = NullValueHandling.Ignore
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
                     };
-                    cli.Settings.JsonSerializer = new NewtonsoftJsonSerializer(jsonSettings);
+                    s.JsonSerializer = new DefaultJsonSerializer(jsonOptions);
                     if (options.TimeoutSeconds != null)
                     {
-                        cli.Settings.Timeout = TimeSpan.FromSeconds((double) options.TimeoutSeconds);
+                        s.Timeout = TimeSpan.FromSeconds((double) options.TimeoutSeconds);
                     }
                 });
+            });
         }
         public async Task<Tokens> GetTokens()
         {
@@ -152,14 +161,19 @@ namespace Rstolsmark.UnifiClient
                 return false;
             }
 
-            var response = await fex.GetResponseJsonAsync()
-                .ConfigureAwait(false);
             try
             {
-                bool isIdInvalid = response.meta.msg.Equals("api.err.IdInvalid");
-                return isIdInvalid;
+                var response = await fex.GetResponseJsonAsync<JsonElement>()
+                    .ConfigureAwait(false);
+                
+                if (response.TryGetProperty("meta", out var meta) &&
+                    meta.TryGetProperty("msg", out var msg))
+                {
+                    return msg.GetString() == "api.err.IdInvalid";
+                }
+                return false;
             }
-            catch (RuntimeBinderException)
+            catch
             {
                 return false;
             }
