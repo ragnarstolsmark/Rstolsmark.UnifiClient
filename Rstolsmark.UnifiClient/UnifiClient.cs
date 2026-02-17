@@ -36,7 +36,7 @@ namespace Rstolsmark.UnifiClient
                         // Handle HttpClientHandler (used in .NET Framework and as fallback)
                         if (h is HttpClientHandler httpClientHandler)
                         {
-                            httpClientHandler.ServerCertificateCustomValidationCallback = (a, b, c, d) => true;
+                            httpClientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
                         }
                         // Handle SocketsHttpHandler (default in .NET 6.0+) using reflection
                         // We use reflection because SocketsHttpHandler is not available in netstandard2.0
