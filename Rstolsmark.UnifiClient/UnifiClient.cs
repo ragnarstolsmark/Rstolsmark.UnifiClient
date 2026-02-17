@@ -33,21 +33,7 @@ namespace Rstolsmark.UnifiClient
                 {
                     builder.ConfigureInnerHandler(h =>
                     {
-#if NETSTANDARD2_0
-                        // For .NET Standard 2.0, only HttpClientHandler is available
-                        if (h is HttpClientHandler handler)
-                        {
-                            handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-                        }
-#else
-                        // For .NET 10+, SocketsHttpHandler is the default handler
-                        // Cast through object to bypass compile-time type checking
-                        var socketsHandler = (object)h as System.Net.Http.SocketsHttpHandler;
-                        if (socketsHandler != null)
-                        {
-                            socketsHandler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-                        }
-#endif
+                        h.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
                     });
                 }
 
