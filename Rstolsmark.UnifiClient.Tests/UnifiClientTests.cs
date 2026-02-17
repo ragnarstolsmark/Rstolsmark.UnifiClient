@@ -62,6 +62,32 @@ namespace Rstolsmark.UnifiClient.Tests
             _jwtToken = File.ReadAllText(Path.Combine(ResponseFolder,"JwtToken.txt"));
         }
         [Fact]
+        public void UnifiClient_With_AllowInvalidCertificate_Should_Initialize()
+        {
+            // Clear the Flurl client cache to ensure a fresh client is created
+            FlurlHttp.Clients.Clear();
+            
+            var cache = new MemoryCache(new MemoryCacheOptions
+            {
+                Clock = _testClock
+            });
+            var options = new UnifiClientOptions
+            {
+                BaseUrl = "https://test-invalid-cert.example.com",
+                Credentials = new Credentials
+                {
+                    Username = "test",
+                    Password = "test"
+                },
+                AllowInvalidCertificate = true
+            };
+            
+            // This should not throw an exception
+            var client = new UnifiClient(cache, options);
+            Assert.NotNull(client);
+        }
+        
+        [Fact]
         public async Task Login_Should_Throw_Exception_On_Failure()
         {
             using var httpTest = new HttpTest();
