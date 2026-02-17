@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Xunit;
 using Flurl.Http;
 using Flurl.Http.Configuration;
 using Flurl.Http.Testing;
@@ -115,7 +110,7 @@ namespace Rstolsmark.UnifiClient.Tests
             //Forward the test clock to two minutes after the token expires to see that login is called again
             _testClock.UtcNow = new DateTimeOffset(2021, 10, 11, 15, 35, 0, 0, TimeSpan.Zero);
             await _unifiClient.GetTokens();
-            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "Login.json"));
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "Login.json"), TestContext.Current.CancellationToken);
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/api/auth/login")
                 .WithContentType("application/json")
                 .WithRequestBody(expectedRequest)
@@ -136,7 +131,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var portForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetCurrentPortForward.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetCurrentPortForward.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(portForwardResponse);
             var portForwardSettings = await _unifiClient.GetPortForwardSettings();
@@ -151,7 +146,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var deletePortForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardInvalidId.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardInvalidId.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(body: deletePortForwardResponse, status: 400);
             await Assert.ThrowsAsync<IdInvalidException>(()=> _unifiClient.DeletePortForwardSetting("60478d7f8e188e04d2ff3e8a"));
@@ -163,7 +158,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var deletePortForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardSuccess.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "DeletePortForwardSuccess.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(deletePortForwardResponse);
             await _unifiClient.DeletePortForwardSetting("60478d7f8e188e04d2ff3e8e");
@@ -175,7 +170,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "CreatePortForward.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "CreatePortForward.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(createPortForwardResponse);
             var portForward = new PortForwardForm
@@ -191,7 +186,7 @@ namespace Rstolsmark.UnifiClient.Tests
             };
             var portForwardSetting = await _unifiClient.CreatePortForwardSetting(portForward);
             var tokens = await _unifiClient.GetTokens();
-            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForward.json"));
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForward.json"), TestContext.Current.CancellationToken);
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward")
                 .WithContentType("application/json")
                 .WithHeader("X-CSRF-Token",tokens.CsrfToken)
@@ -205,10 +200,10 @@ namespace Rstolsmark.UnifiClient.Tests
             using var httpTest = new HttpTest();
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
-            var GetByIdResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetById.json")); 
+            var getByIdResponse =
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetById.json"), TestContext.Current.CancellationToken); 
             httpTest
-                .RespondWith(GetByIdResponse);
+                .RespondWith(getByIdResponse);
             var id = "6156a2368e188e7795ff6399";
             var portForwardSetting = await _unifiClient.GetPortForwardById(id);
             var tokens = await _unifiClient.GetTokens();
@@ -224,7 +219,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "EnablePortForward.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "EnablePortForward.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(createPortForwardResponse);
             var portForward = new PortForwardForm
@@ -234,7 +229,7 @@ namespace Rstolsmark.UnifiClient.Tests
             var id = "6156a2368e188e7795ff6399";
             await _unifiClient.EditPortForwardSetting(id, portForward);
             var tokens = await _unifiClient.GetTokens();
-            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "EnablePortForward.json"));
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "EnablePortForward.json"), TestContext.Current.CancellationToken);
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward/{id}")
                 .WithVerb(HttpMethod.Put)
                 .WithContentType("application/json")
@@ -250,7 +245,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var portForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(portForwardResponse);
             var portForwardSettings = await _unifiClient.GetPortForwardSettings();
@@ -270,7 +265,7 @@ namespace Rstolsmark.UnifiClient.Tests
             ConfigureHttpTest(httpTest);
             AddLoginSuccessCall(httpTest);
             var createPortForwardResponse =
-                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json")); 
+                await File.ReadAllTextAsync(Path.Combine(ResponseFolder, "GetPortForwardWithWanIp.json"), TestContext.Current.CancellationToken); 
             httpTest
                 .RespondWith(createPortForwardResponse);
             var portForward = new PortForwardForm
@@ -284,13 +279,13 @@ namespace Rstolsmark.UnifiClient.Tests
                 Protocol = "tcp",
                 Log = false,
                 DestinationIp = "198.51.100.50",
-                DestinationIps = new string[] { },
+                DestinationIps = [],
                 SourceLimitingType = "ip",
                 SourceLimitingEnabled = true
             };
             var portForwardSetting = await _unifiClient.CreatePortForwardSetting(portForward);
             var tokens = await _unifiClient.GetTokens();
-            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForwardWithWanIp.json"));
+            var expectedRequest = await File.ReadAllTextAsync(Path.Combine(RequestFolder, "CreatePortForwardWithWanIp.json"), TestContext.Current.CancellationToken);
             httpTest.ShouldHaveCalled($"{_options.BaseUrl}/proxy/network/api/s/default/rest/portforward")
                 .WithContentType("application/json")
                 .WithHeader("X-CSRF-Token",tokens.CsrfToken)
