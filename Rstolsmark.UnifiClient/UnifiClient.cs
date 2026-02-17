@@ -40,16 +40,12 @@ namespace Rstolsmark.UnifiClient
                             handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
                         }
 #else
-                        // For .NET 6.0+, SocketsHttpHandler is the default handler
+                        // For .NET 10+, SocketsHttpHandler is the default handler
                         // Cast through object to bypass compile-time type checking
                         var socketsHandler = (object)h as System.Net.Http.SocketsHttpHandler;
                         if (socketsHandler != null)
                         {
                             socketsHandler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-                        }
-                        else if (h is HttpClientHandler handler)
-                        {
-                            handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
                         }
 #endif
                     });
