@@ -53,7 +53,7 @@ public class UnifiClientTests
         };
         _unifiClient = new UnifiClient(cache, _options);
         //The jwt token is valid to 11.10.2021 15:33:28 UTC
-        //It also contains a clam named csrfToken that is valid in the same time span
+        //It also contains a claim named csrfToken that is valid in the same time span
         _jwtToken = File.ReadAllText(Path.Combine(ResponseFolder,"JwtToken.txt"));
     }
     [Fact]
