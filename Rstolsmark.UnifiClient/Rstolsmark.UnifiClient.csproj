@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <PackageId>Rstolsmark.UnifiClient</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>ragnarstolsmark</Authors>
     <Company>Rstolsmark</Company>
     <Description>A Unifi Client library.</Description>
