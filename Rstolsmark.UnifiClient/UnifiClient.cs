@@ -37,6 +37,12 @@ namespace Rstolsmark.UnifiClient
                         {
                             handler.ServerCertificateCustomValidationCallback = (a, b, c, d) => true;
                         }
+#if !NETSTANDARD2_0
+                        else if (h is System.Net.Http.SocketsHttpHandler socketsHandler)
+                        {
+                            socketsHandler.SslOptions.RemoteCertificateValidationCallback = (a, b, c, d) => true;
+                        }
+#endif
                     });
                 }
 
