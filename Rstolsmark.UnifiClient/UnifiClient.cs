@@ -33,25 +33,32 @@ namespace Rstolsmark.UnifiClient
                 {
                     builder.ConfigureInnerHandler(h =>
                     {
-                        // For .NET Standard 2.0 and older .NET Framework, use HttpClientHandler
+                        // Handle HttpClientHandler (used in .NET Framework and as fallback)
                         if (h is HttpClientHandler httpClientHandler)
                         {
                             httpClientHandler.ServerCertificateCustomValidationCallback = (a, b, c, d) => true;
                         }
-#if !NETSTANDARD2_0
-                        // For modern .NET (6.0+), SocketsHttpHandler is the default
-                        // Use dynamic to avoid compile-time type checking
-                        else
+                        // Handle SocketsHttpHandler (default in .NET 6.0+) using reflection
+                        // We use reflection because SocketsHttpHandler is not available in netstandard2.0
+                        // but will be present at runtime when running on .NET 6.0+
+                        else if (h.GetType().Name == "SocketsHttpHandler")
                         {
-                            var handlerType = h.GetType();
-                            if (handlerType.Name == "SocketsHttpHandler")
+                            // Use reflection to set SslOptions.RemoteCertificateValidationCallback
+                            var sslOptionsProperty = h.GetType().GetProperty("SslOptions");
+                            if (sslOptionsProperty != null)
                             {
-                                dynamic socketsHandler = h;
-                                socketsHandler.SslOptions.RemoteCertificateValidationCallback = 
-                                    new System.Net.Security.RemoteCertificateValidationCallback((a, b, c, d) => true);
+                                var sslOptions = sslOptionsProperty.GetValue(h);
+                                if (sslOptions != null)
+                                {
+                                    var callbackProperty = sslOptions.GetType().GetProperty("RemoteCertificateValidationCallback");
+                                    if (callbackProperty != null)
+                                    {
+                                        var callback = new System.Net.Security.RemoteCertificateValidationCallback((sender, cert, chain, sslPolicyErrors) => true);
+                                        callbackProperty.SetValue(sslOptions, callback);
+                                    }
+                                }
                             }
                         }
-#endif
                     });
                 }
 
