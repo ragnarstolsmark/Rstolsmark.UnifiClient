@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Flurl.Http;
@@ -11,11 +10,11 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Rstolsmark.UnifiClient
 {
-    public class UnifiClient
+    public class UnifiClient : IDisposable
     {
         private IMemoryCache _cache;
         private Credentials _credentials;
-        private string _baseUrl;
+        private readonly IFlurlClient _client;
         private string _defaultInterface;
         private const string CredentialsCacheKey = "unifiCredentials";
         private const string TokenCookieName = "TOKEN";
@@ -24,20 +23,9 @@ namespace Rstolsmark.UnifiClient
         {
             _cache = cache;
             _credentials = options.Credentials;
-            _baseUrl = options.BaseUrl;
             _defaultInterface = options.DefaultInterface;
-            
-            FlurlHttp.Clients.GetOrAdd(_baseUrl, _baseUrl, builder =>
-            {
-                if (options.AllowInvalidCertificate)
-                {
-                    builder.ConfigureInnerHandler(h =>
-                    {
-                        h.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
-                    });
-                }
-
-                builder.WithSettings(s =>
+            var flurlClientBuilder = new FlurlClientBuilder(options.BaseUrl)
+                .WithSettings(s =>
                 {
                     var jsonOptions = new JsonSerializerOptions
                     {
@@ -50,7 +38,14 @@ namespace Rstolsmark.UnifiClient
                         s.Timeout = TimeSpan.FromSeconds((double) options.TimeoutSeconds);
                     }
                 });
-            });
+            if (options.AllowInvalidCertificate)
+            {
+                flurlClientBuilder.ConfigureInnerHandler(h =>
+                {
+                    h.ServerCertificateCustomValidationCallback = (message, certificate2, chain, errors) => true;
+                });
+            }
+            _client = flurlClientBuilder.Build();
         }
         public async Task<Tokens> GetTokens()
         {
@@ -67,7 +62,7 @@ namespace Rstolsmark.UnifiClient
         {
             try
             {
-                var loginResponse = await $"{_baseUrl}/api/auth/login"
+                var loginResponse = await _client.Request("/api/auth/login")
                     .PostJsonAsync(_credentials)
                     .WithTimeoutHandling()
                     .ConfigureAwait(false);
@@ -99,7 +94,7 @@ namespace Rstolsmark.UnifiClient
                 .ConfigureAwait(false);
             try
             {
-                var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                var portForwardResponse = await _client.Request($"/proxy/network/api/s/default/rest/portforward/{id}")
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .GetJsonAsync<PortForwardListResponse>()
                     .WithTimeoutHandling()
@@ -116,7 +111,7 @@ namespace Rstolsmark.UnifiClient
         {
             var tokens = await GetTokens()
                 .ConfigureAwait(false);
-            var portForwardResponse = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
+            var portForwardResponse = await _client.Request($"/proxy/network/api/s/default/rest/portforward")
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .GetJsonAsync<PortForwardListResponse>()
                 .WithTimeoutHandling()
@@ -134,7 +129,7 @@ namespace Rstolsmark.UnifiClient
                 .ConfigureAwait(false);
             try
             {
-                var _ = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                var _ = await _client.Request($"/proxy/network/api/s/default/rest/portforward/{id}")
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                     .DeleteAsync()
@@ -184,7 +179,7 @@ namespace Rstolsmark.UnifiClient
             }
             var tokens = await GetTokens()
                 .ConfigureAwait(false);
-            var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward"
+            var response = await _client.Request("/proxy/network/api/s/default/rest/portforward")
                 .WithCookie(TokenCookieName, tokens.JwtToken)
                 .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                 .PostJsonAsync(portForward)
@@ -205,7 +200,7 @@ namespace Rstolsmark.UnifiClient
                 .ConfigureAwait(false);
             try
             {
-                var response = await $"{_baseUrl}/proxy/network/api/s/default/rest/portforward/{id}"
+                var response = await _client.Request($"/proxy/network/api/s/default/rest/portforward/{id}")
                     .WithCookie(TokenCookieName, tokens.JwtToken)
                     .WithHeader(CsrfTokenHeaderName, tokens.CsrfToken)
                     .PutJsonAsync(portForward)
@@ -219,6 +214,11 @@ namespace Rstolsmark.UnifiClient
                 }
                 throw;
             }
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
         }
     }
 

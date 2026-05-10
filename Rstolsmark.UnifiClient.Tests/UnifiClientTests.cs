@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Flurl.Http;
 using Flurl.Http.Configuration;
 using Flurl.Http.Testing;
 using Microsoft.Extensions.Caching.Memory;
@@ -28,9 +27,6 @@ public class UnifiClientTests
         
     public UnifiClientTests()
     {
-        // Clear the Flurl client cache to ensure HttpTest can intercept calls
-        FlurlHttp.Clients.Clear();
-            
         var loginDate = new DateTimeOffset(2021, 10, 11, 14, 33, 0, 0, TimeSpan.Zero);
         _testClock = new TestClock()
         {
@@ -59,9 +55,6 @@ public class UnifiClientTests
     [Fact]
     public void UnifiClient_With_AllowInvalidCertificate_Should_Initialize()
     {
-        // Clear the Flurl client cache to ensure a fresh client is created
-        FlurlHttp.Clients.Clear();
-            
         var cache = new MemoryCache(new MemoryCacheOptions
         {
             Clock = _testClock
